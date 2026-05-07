@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure User Registration | SafeCity Auth</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* GitHub Dark Theme Background */
+            color: #c9d1d9; /* Light text color */
+        }
+        /* Custom focused state for inputs */
+        .form-input:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 1px #58a6ff;
+        }
+        /* Custom container for alerts */
+        #alertContainer {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0d1117',
+                        'card-bg': '#161b22',
+                        'accent-blue': '#58a6ff',
+                        'success-green': '#3fb950',
+                        'error-red': '#f85149',
+                        'primary-indigo': '#4f46e5', /* Added primary-indigo for color consistency */
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-dark-bg min-h-screen flex items-center justify-center p-4">
+
+    <!-- Custom Alert Container -->
+    <div id="alertContainer"></div>
+
+    <div class="w-full max-w-xl bg-card-bg rounded-xl shadow-2xl p-8 space-y-8 border border-gray-700/50">
+        <header class="text-center">
+            <h1 class="text-3xl font-bold text-success-green tracking-wider">
+                SafeCity User Registration
+            </h1>
+            <p class="text-gray-400 mt-2">Create your professional account with OTP verification.</p>
+        </header>
+
+        <!-- STEP 1: Registration Form -->
+        <form id="registrationForm" class="space-y-6">
+            <h2 class="text-xl font-semibold border-b border-gray-700 pb-3 text-white">1. Personal Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Name -->
+                <input type="text" id="name" placeholder="Full Name" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+                <!-- Username -->
+                <input type="text" id="username" placeholder="Username (unique ID)" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+                <!-- Phone Number -->
+                <input type="tel" id="phoneNumber" placeholder="Phone Number (e.g., 9876543210)" required pattern="[0-9]{10}" maxlength="10" class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+                <!-- Alternate Number -->
+                <input type="tel" id="alternateNumber" placeholder="Alternate Phone (Optional)" pattern="[0-9]{10}" maxlength="10" class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+            </div>
+
+            <!-- Email -->
+            <input type="email" id="email" placeholder="Email Address" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+            
+            <!-- Address -->
+            <div>
+                <textarea id="address" placeholder="Full Address" rows="3" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200"></textarea>
+            </div>
+
+            <button type="submit" id="sendOtpButton" class="w-full py-3 bg-success-green hover:bg-green-700 text-white font-bold rounded-lg shadow-md transition duration-300">
+                Send OTP & Register
+            </button>
+            
+            <div class="text-center pt-2">
+                <p class="text-sm text-gray-500">Already registered? 
+                    <!-- Link back to the main dashboard (index.html) -->
+                    <a href="index.html" class="text-accent-blue hover:text-blue-400 font-semibold transition duration-200">Login Here</a>
+                </p>
+            </div>
+        </form>
+
+        <!-- STEP 2: OTP Verification (Initially Hidden) -->
+        <div id="otpVerification" class="space-y-6 hidden">
+            <h2 class="text-xl font-semibold border-b border-gray-700 pb-3 text-white">2. OTP Verification</h2>
+            <p id="otpMessage" class="text-center text-gray-400">OTP sent to +91-XXXXXXXXXX. (Simulated OTP: 123456)</p>
+            
+            <input type="text" id="otpInput" placeholder="Enter 6-Digit OTP" maxlength="6" class="form-input text-center text-3xl tracking-widest w-full p-4 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+            
+            <button id="verifyOtpButton" class="w-full py-3 bg-accent-blue hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition duration-300">
+                Verify & Complete Login
+            </button>
+            
+            <div class="text-center text-sm">
+                <button id="resendOtpButton" class="text-gray-500 hover:text-accent-blue transition duration-200" disabled>
+                    Resend OTP (Wait <span id="timer">30</span>s)
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Function to generate a random 6-digit OTP
+        function generateOTP() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // DOM Elements
+            const registrationForm = document.getElementById('registrationForm');
+            const otpVerification = document.getElementById('otpVerification');
+            const otpInput = document.getElementById('otpInput');
+            const verifyOtpButton = document.getElementById('verifyOtpButton');
+            const resendOtpButton = document.getElementById('resendOtpButton');
+            const otpMessage = document.getElementById('otpMessage');
+            const timerEl = document.getElementById('timer');
+            const sendOtpButton = document.getElementById('sendOtpButton');
+
+            // Constants
+            let SIMULATED_OTP = ""; // Changed to let and initialized empty for dynamic use
+            let resendTimer = null;
+            let currentPhoneNumber = '';
+
+            // --- Custom Alert Function (Replacing window.alert) ---
+            function customAlert(message, type = 'success') {
+                const alertContainer = document.getElementById('alertContainer');
+                
+                // Determine colors based on type
+                let bgColor, iconColor;
+                if (type === 'success') {
+                    bgColor = 'bg-success-green';
+                    iconColor = 'text-white';
+                } else if (type === 'error') {
+                    bgColor = 'bg-error-red';
+                    iconColor = 'text-white';
+                } else {
+                    bgColor = 'bg-accent-blue';
+                    iconColor = 'text-white';
+                }
+
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `p-4 rounded-lg shadow-2xl flex items-center space-x-3 transition-opacity duration-300 ${bgColor} text-white`;
+                alertDiv.innerHTML = `
+                    <svg class="h-6 w-6 ${iconColor}" fill="currentColor" viewBox="0 0 20 20">
+                        ${type === 'success' ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>' : 
+                          type === 'error' ? '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>' : 
+                          '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-11a1 1 0 102 0V9a1 1 0 10-2 0V7zm0 6a1 1 0 102 0v-2a1 1 0 10-2 0v2z" clip-rule="evenodd"/>'}
+                    </svg>
+                    <span>${message}</span>
+                `;
+
+                // Add and display the alert
+                alertContainer.appendChild(alertDiv);
+                
+                // Automatically remove after 4 seconds
+                setTimeout(() => {
+                    alertDiv.style.opacity = '0';
+                    alertDiv.addEventListener('transitionend', () => alertDiv.remove());
+                }, 4000);
+            }
+
+            // --- Timer Logic for Resend OTP ---
+            function startResendTimer() {
+                let seconds = 30;
+                resendOtpButton.disabled = true;
+                resendOtpButton.classList.add('opacity-50', 'cursor-not-allowed');
+                timerEl.textContent = seconds;
+
+                resendTimer = setInterval(() => {
+                    seconds--;
+                    timerEl.textContent = seconds;
+                    if (seconds <= 0) {
+                        clearInterval(resendTimer);
+                        resendOtpButton.disabled = false;
+                        resendOtpButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                        resendOtpButton.textContent = 'Resend OTP';
+                    }
+                }, 1000);
+            }
+
+            // --- Step 1 Handler: Send OTP ---
+            registrationForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                // 1. Generate new, real-time OTP
+                SIMULATED_OTP = generateOTP(); 
+                
+                // NOTE: In a real app, this data would be sent to a server for storage.
+                currentPhoneNumber = document.getElementById('phoneNumber').value;
+                const name = document.getElementById('name').value;
+                
+                // Show OTP verification stage
+                registrationForm.classList.add('hidden');
+                otpVerification.classList.remove('hidden');
+                
+                // 2. Update message with generated OTP and highlight it
+                otpMessage.innerHTML = `OTP sent to **+91-${currentPhoneNumber.substring(0, 4)}XXXXX${currentPhoneNumber.substring(8)}**. (Simulated OTP: <span class="text-success-green font-bold">${SIMULATED_OTP}</span>)`;
+                
+                customAlert(`OTP sent successfully! Hi, ${name}.`, 'info');
+                
+                // Start timer
+                if (resendTimer) clearInterval(resendTimer);
+                startResendTimer();
+            });
+
+            // --- Step 2 Handler: Verify OTP ---
+            verifyOtpButton.addEventListener('click', () => {
+                const enteredOtp = otpInput.value;
+
+                if (enteredOtp === SIMULATED_OTP) {
+                    customAlert('Verification successful! Account created. Redirecting to Dashboard...', 'success');
+                    
+                    // Simulate redirection after successful login
+                    clearInterval(resendTimer);
+                    setTimeout(() => {
+                        window.location.href = 'index.html'; // Redirect to main portal
+                    }, 2000);
+
+                } else {
+                    customAlert('Incorrect OTP. Please try again or resend.', 'error');
+                    otpInput.value = '';
+                }
+            });
+
+            // --- Resend OTP Handler ---
+            resendOtpButton.addEventListener('click', () => {
+                // 3. Generate a new OTP on resend
+                SIMULATED_OTP = generateOTP(); 
+                
+                otpMessage.innerHTML = `New OTP sent to **+91-${currentPhoneNumber.substring(0, 4)}XXXXX${currentPhoneNumber.substring(8)}**. (Simulated OTP: <span class="text-success-green font-bold">${SIMULATED_OTP}</span>)`;
+
+                customAlert(`New OTP sent to +91-${currentPhoneNumber.substring(0, 4)}XXXXX${currentPhoneNumber.substring(8)}.`, 'info');
+                otpInput.value = '';
+                if (resendTimer) clearInterval(resendTimer);
+                startResendTimer();
+            });
+        });
+    </script>
+</body>
+</html>

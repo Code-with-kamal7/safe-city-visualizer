@@ -1,0 +1,1 @@
+SafeCity AI is a full-stack, mock application designed to empower citizens and police forces with predictive geospatial intelligence to mitigate crime. It transitions public safety from a reactive model to a proactive one by analyzing mock data patterns to visualize high-risk areas.

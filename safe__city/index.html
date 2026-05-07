@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeCity – Crime & Safety Visualizer | India's Safety Tech</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script>
+        // Tailwind config ko yahaan rakhenge, taaki classes runtime par available hon.
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-indigo': '#4f46e5',
+                        'secondary-teal': '#14b8a6',
+                        'dark-bg': '#0A0A0A',
+                        'card-bg': '#1f2937',
+                        'accent-blue': '#58a6ff',
+                        'success-green': '#3fb950',
+                        'error-red': '#f85149',
+                        'auth-bg': '#161b22',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-white">
+    
+    <div id="alertContainer"></div>
+
+    <header class="bg-card-bg/90 backdrop-blur-md shadow-lg z-50 sticky top-0">
+        <div class="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold tracking-tight text-primary-indigo flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="8"></circle><line x1="12" y1="2" x2="12" y2="2"></line><line x1="4.93" y1="4.93" x2="4.93" y2="4.93"></line><line x1="19.07" y1="4.93" x2="19.07" y2="4.93"></line><path d="M12 22s-8-4.5-8-10c0-4.4 3.6-8 8-8s8 3.6 8 8c0 5.5-8 10-8 10z"></path></svg>
+                <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary-indigo to-secondary-teal">SafeCity </span>
+            </h1>
+            
+            <div class="flex items-center space-x-4">
+                <button id="panicButton" class="bg-red-600 hover:bg-red-700 text-white font-extrabold py-2 px-4 rounded-lg shadow-md transition duration-200 transform hover:scale-[1.03] active:scale-95 flex items-center space-x-2 animate-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-10c0-4.4 3.6-8 8-8s8 3.6 8 8c0 5.5-8 10-8 10z"></path><path d="M12 18l-1.5-3h3L12 18z"></path><circle cx="12" cy="10" r="2"></circle></svg>
+                    <span>SOS</span>
+                </button>
+                
+                <button id="authStatusButton" class="bg-success-green hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 shadow-md">
+                    Login / Register
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="py-8 w-full">
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="p-4 vibrant-card rounded-xl shadow-lg border-l-4 border-primary-indigo flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Total Incidents in MP (Last 30 Days)</p>
+                        <p class="text-3xl font-extrabold text-white">14,350</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-indigo opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                </div>
+                
+                <div class="p-4 vibrant-card rounded-xl shadow-lg border-l-4 border-secondary-teal flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Most Unsafe Time</p>
+                        <p class="text-3xl font-extrabold text-white">Evening (18:00 - 22:00)</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-secondary-teal opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                </div>
+
+                <div class="p-4 vibrant-card rounded-xl shadow-lg border-l-4 border-gray-600 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Patrol Deployment Index</p>
+                        <p class="text-3xl font-extrabold text-white">78%</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-600 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                </div>
+
+                <div class="p-4 vibrant-card rounded-xl shadow-lg border-l-4 border-primary-indigo/50 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-400">Women Safety Index (MP Avg)</p>
+                        <p class="text-3xl font-extrabold text-white">6.5/10</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary-indigo/50 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"></path><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <div class="lg:col-span-1 space-y-8">
+                    <div class="p-6 vibrant-card rounded-xl shadow-2xl h-fit">
+                        <h2 class="text-2xl font-semibold mb-6 text-secondary-teal border-b border-gray-700 pb-3">🚨 Crime Risk Predictor (AI Simulated)</h2>
+                        <p class="text-gray-400 mb-6">Apna location aur time enter karke safety risk check karein. (Enter location and time to check safety risk.)</p>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="areaSelect" class="block text-sm font-medium text-gray-300 mb-2">City/Zone Select (Madhya Pradesh Mock)</label>
+                                <select id="areaSelect" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-primary-indigo focus:border-primary-indigo transition duration-150">
+                                    <option value="Bhopal-Core">Bhopal Core (CBD/Old City)</option>
+                                    <option value="Indore-Commercial">Indore Commercial (Vijay Nagar/Rau)</option>
+                                    <option value="Jabalpur-Residential">Jabalpur Residential (Garha/Civil Lines)</option>
+                                    <option value="Gwalior-Outskirts">Gwalior Outskirts (Isolated Areas)</option>
+                                    <option value="Ujjain-Religious">Ujjain (Religious/Crowded Areas)</option>
+                                    <option value="Sagar-University">Sagar (University/Campus Area)</option>
+                                    <option value="Rewa-Vindhya">Rewa (Vindhya Region)</option>
+                                    <option value="Khajuraho-Tourist">Khajuraho (Tourist/Isolated)</option>
+                                    <option value="Satna-Industrial">Satna (Industrial/Railway Area)</option>
+                                    <option value="Hoshangabad-Riverine">Hoshangabad (Narmada Riverine Area)</option>
+                                    <option value="Chhindwara-Southern">Chhindwara (Southern Region)</option>
+                                    <option value="Ratlam-Western">Ratlam (Western Border/Junction)</option>
+                                    <option value="Dewas-Industrial">Dewas (Industrial Zone)</option>
+                                    <option value="Singrauli-Energy">Singrauli (Energy/Mining Belt)</option>
+                                    <option value="Shivpuri-Northern">Shivpuri (Northern Highway Zone)</option>
+                                    <option value="Khandwa-SouthWest">Khandwa (South-Western Hub)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label for="timeOfDay" class="block text-sm font-medium text-gray-300 mb-2">Time of Day</label>
+                                <select id="timeOfDay" class="w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-primary-indigo focus:border-primary-indigo transition duration-150">
+                                    <option value="Day (06:00-18:00)">Day (06:00 - 18:00)</option>
+                                    <option value="Evening (18:00-22:00)">Evening (18:00 - 22:00)</option>
+                                    <option value="Night (22:00-06:00)">Night (22:00 - 06:00)</option>
+                                </select>
+                            </div>
+
+                            <button id="predictButton" class="w-full py-3 mt-6 bg-primary-indigo hover:bg-indigo-600 rounded-lg text-lg font-bold transition duration-300 shadow-md shadow-primary-indigo/40 transform hover:scale-[1.01]">
+                                Check Safety Score
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6 vibrant-card rounded-xl shadow-2xl h-fit">
+                        <h2 class="text-2xl font-semibold mb-4 text-red-400 border-b border-gray-700 pb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 animate-pulse" viewBox="0 0 24 24" fill="currentColor"><path d="M14.7 6.3a1 1 0 0 0-1.4 0l-8 8a1 1 0 1 0 1.4 1.4l8-8a1 1 0 0 0 0-1.4zM18 10a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0v-5zM6 10a1 1 0 1 0-2 0v5a1 1 0 1 0 2 0v-5z"/></svg>
+                            LIVE Incident Feed
+                        </h2>
+                        <div id="incidentFeed" class="space-y-3">
+                            <p class="text-gray-500 text-sm text-center py-4">Loading live incident data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 space-y-8">
+                    
+                    <div class="p-6 vibrant-card rounded-xl shadow-2xl">
+                        <h2 class="text-2xl font-semibold mb-4 text-secondary-teal border-b border-gray-700 pb-3">🗺️ Crime Hotspot Visualizer (Interactive Satellite View)</h2>
+                        <div class="relative rounded-lg overflow-hidden border border-gray-700 p-2 bg-gray-900/50">
+                            
+                            <div id="liveMap" class="z-10 w-full h-[350px]"></div>
+
+                            <div id="riskLegend" class="absolute left-4 top-4 bg-black/50 p-3 rounded-lg text-xs shadow-lg space-y-1 z-20">
+                                <p class="text-white font-bold mb-1">RISK LEGEND (Marker Color)</p>
+                                <div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2 bg-red-600"></div> Critical Risk</div>
+                                <div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2 bg-red-500"></div> High Risk</div>
+                                <div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2 bg-orange-500"></div> Medium Risk</div>
+                                <div class="flex items-center"><div class="w-3 h-3 rounded-full mr-2 bg-green-500"></div> Low Risk</div>
+                            </div>
+                        </div>
+                        <p class="text-xs mt-2 text-gray-500 text-center">Interactive map showing predicted risk at selected location. Map ko shift karne ke liye drag karein (You can drag the map to shift view).</p>
+                    </div>
+
+                    <div id="suggestionCard" class="p-6 bg-yellow-900/40 border border-yellow-500/50 rounded-xl shadow-xl transition-all duration-300 transform scale-95 opacity-0 pointer-events-none">
+                        <h3 class="text-xl font-bold mb-3 text-yellow-300 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                            Your Safety Status: <span id="riskLevel" class="ml-2 font-extrabold text-2xl flex items-center"></span>
+                        </h3>
+                        <div class="text-lg text-gray-100">
+                            <p id="riskMessage" class="mb-4"></p>
+                            <p class="font-semibold text-secondary-teal">Safety Suggestion:</p>
+                            <ul id="safetyTips" class="list-disc list-inside text-sm text-gray-300 ml-4">
+                                </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+    
+    <section id="safety-guide" class="mt-12 mb-12 p-8 vibrant-card rounded-2xl shadow-2xl border-secondary-teal/30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-extrabold mb-6 text-secondary-teal border-b border-gray-700 pb-3">
+            Your Personal Safety Guide: Proactive Steps
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-gray-300">
+            <div class="p-4 bg-gray-800/50 rounded-lg shadow-inner border border-gray-700">
+                <h3 class="font-bold text-primary-indigo mb-2 flex items-center">
+                    <span class="text-2xl mr-2">1.</span> Proactive Check
+                </h3>
+                <p class="text-sm">Always check the risk score on SafeCity before going out. If the risk is HIGH or CRITICAL, change your route or adjust your timing..</p>
+            </div>
+            <div class="p-4 bg-gray-800/50 rounded-lg shadow-inner border border-gray-700">
+                <h3 class="font-bold text-primary-indigo mb-2 flex items-center">
+                    <span class="text-2xl mr-2">2.</span> Share Your Journey
+                </h3>
+                <p class="text-sm">Always share your live location and ETA with family or trusted friends, especially at night or in isolated areas..</p>
+            </div>
+            <div class="p-4 bg-gray-800/50 rounded-lg shadow-inner border border-gray-700">
+                <h3 class="font-bold text-primary-indigo mb-2 flex items-center">
+                    <span class="text-2xl mr-2">3.</span> Stay Alert, Stay Visible
+                </h3>
+                <p class="text-sm">Keep the phone secure in crowded places. Use always well-lit roads at night. Always pay attention to your surrounding environment.</p>
+            </div>
+        </div>
+    </section>
+
+
+    <section id="project-intro" class="mt-16 p-8 vibrant-card rounded-2xl shadow-2xl border-primary-indigo/30 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 class="text-4xl font-extrabold mb-6 text-white text-center">
+            Our Mission: The Future of Proactive Safety in India
+        </h2>
+        <div class="md:flex md:items-start md:space-x-12">
+            <div class="md:w-3/4">
+                <h3 class="text-2xl font-bold text-secondary-teal mb-3">
+                    Project Significance: Why SafeCity Matters
+                </h3>
+                <p class="text-lg text-gray-300 mb-4">
+                    SafeCity is not just a map; it's a behavioral change tool. We utilize advanced **Geospatial AI** and real-time data ingestion to predict crime patterns down to the micro-zone level. This means we move from reactive policing to **proactive risk mitigation**. Our platform empowers citizens to make informed decisions about their routes, timing, and travel methods, especially in high-risk areas of Madhya Pradesh.
+                </p>
+                <p class="text-md text-gray-400 mb-6">
+                    Technology & Roadmap: The core technology uses time-series analysis on historical FIR (First Information Report) data combined with environmental factors like crowd density and time-of-day traffic flow. The current implementation uses **Firebase Firestore** for live incident feeds and Leaflet for dynamic, satellite-view mapping, providing a powerful, yet lightweight user experience. Our roadmap includes integrating official police data feeds and developing a dedicated SOS mobile application.
+                </p>
+                <div class="mt-6 p-4 bg-primary-indigo/10 border-l-4 border-primary-indigo rounded-xl shadow-lg inline-block">
+                    <p class="text-2xl font-extrabold text-primary-indigo">92% Proactive Accuracy</p>
+                    <p class="text-sm text-gray-300 mt-1">We predict crime hotspots to keep you ahead of risk.</p>
+                </div>
+            </div>
+            <div class="md:w-1/4 flex justify-center flex-col items-center mt-6 md:mt-0">
+                <img 
+                    src="safe.jpg" 
+                    alt="AI Safety Vision Graphic: Secure Future" 
+                    class="rounded-xl shadow-2xl border border-primary-indigo/50 w-full max-w-xs h-auto object-cover transition duration-300 hover:scale-[1.03]"
+                    onerror="this.onerror=null; this.src='https://placehold.co/300x200/4f46e5/ffffff?text=Tech+Image+Placeholder';"
+                >
+            </div>
+        </div>
+    </section>
+
+    
+    <footer class="mt-16 bg-card-bg/70 backdrop-blur-md border-t border-gray-700 shadow-inner">
+        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
+                
+                <div>
+                    <h4 class="text-lg font-bold text-primary-indigo mb-3">SafeCity Vision</h4>
+                    <p class="text-gray-400">Our mission is to empower citizens with predictive intelligence to avoid crime and enhance police deployment effectiveness across the state.</p>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-bold text-primary-indigo mb-3">Get in Touch</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Email: <a href="mailto:ankierma@zohomail.in" class="hover:text-secondary-teal transition duration-200">ankierma@zohomail.in</a></li>
+                        <li>Support: +91 6269013288  (Mock Line)</li>
+                        <li>Address: city center gwalior, mp.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-bold text-primary-indigo mb-3">Connect with Us</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Instagram: <a href="#" class="hover:text-secondary-teal transition duration-200 font-mono">@SafeCity_MP</a></li>
+                        <li>WhatsApp Channel: <a href="#" class="hover:text-secondary-teal transition duration-200 font-mono">/SafeCityAlerts</a></li>
+                        <li>LinkedIn: <a href="#" class="hover:text-secondary-teal transition duration-200 font-mono">/company/SafeCityAI</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-lg font-bold text-primary-indigo mb-3">Developed By</h4>
+                    <p class="text-lg font-semibold text-white">CODERS GANG</p>
+                    <p class="text-gray-400 mt-1">A group of AI/ML experts dedicated to public safety.</p>
+                </div>
+            </div>
+            <div class="text-center text-xs text-gray-600 mt-10 border-t border-gray-800 pt-4">
+                &copy; 2025 SafeCity AI. All Rights Reserved. (Mock Demo)
+            </div>
+        </div>
+    </footer>
+
+
+    <button id="chatOpenButton" class="bg-secondary-teal hover:bg-teal-600 text-white p-4 rounded-full transition duration-300 transform hover:scale-110 active:scale-95 shadow-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12V3"></path><circle cx="12" cy="19" r="2"></circle><path d="M5 12h14"></path><path d="M7 16l-2-2"></path><path d="M17 16l2-2"></path></svg>
+    </button>
+
+    <div id="chatModal" class="hidden">
+        <div id="chatWindow" class="w-full h-full bg-card-bg rounded-xl shadow-2xl flex flex-col border border-secondary-teal/50">
+            <div class="p-4 bg-secondary-teal rounded-t-xl flex justify-between items-center">
+                <h3 class="text-white font-bold text-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12V3"></path><circle cx="12" cy="19" r="2"></circle><path d="M5 12h14"></path><path d="M7 16l-2-2"></path><path d="M17 16l2-2"></path></svg>
+                    SafeCity AI Assistant
+                </h3>
+                <button id="chatCloseButton" class="text-white opacity-70 hover:opacity-100 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            
+            <div id="chatMessages" class="p-4 flex-grow space-y-4">
+                <div class="text-center text-gray-400 mt-4">
+                    <p class="text-sm">Ask me anything about safety, risk scores, or the SafeCity project!</p>
+                </div>
+            </div>
+
+            <div class="p-3 border-t border-gray-700 flex space-x-2">
+                <input type="text" id="chatInput" placeholder="Type your query..." class="flex-grow p-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-secondary-teal focus:border-secondary-teal">
+                <button id="chatSendButton" class="bg-primary-indigo text-white p-2 rounded-lg hover:bg-indigo-600 transition duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" /></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="authModal" class="hidden fixed inset-0 flex items-center justify-center">
+
+        <div class="w-full max-w-sm bg-auth-bg rounded-xl shadow-2xl p-8 space-y-6 border border-gray-700/50 transform transition-all duration-300 scale-95 opacity-0" id="loginCard">
+            <header class="text-center">
+                <h1 class="text-3xl font-bold text-accent-blue tracking-wider">
+                    SafeCity Login
+                </h1>
+                <p class="text-gray-400 mt-2">Access your dashboard as a registered user.</p>
+            </header>
+
+            <form id="loginForm" class="space-y-4">
+                
+                <input type="text" id="loginUsername" placeholder="Username" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+                
+                <input type="email" id="loginEmail" placeholder="Registered Email Address" required class="form-input w-full p-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-accent-blue focus:border-accent-blue transition duration-200">
+                
+                <button type="submit" id="loginButton" class="w-full py-3 bg-accent-blue hover:bg-blue-600 text-white font-bold rounded-lg shadow-md transition duration-300">
+                    Login
+                </button>
+                
+                <div class="text-center pt-2">
+                    <p class="text-sm text-gray-500">New user? 
+                        <a href="register.html" id="registerLink" class="text-success-green hover:text-green-400 font-semibold transition duration-200">Register Here</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script type="module" src="app.js"></script>
+</body>
+</html>
